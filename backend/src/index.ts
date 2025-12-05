@@ -20,11 +20,13 @@ app.get('/schemas', (req: Request, res: Response) => {
     schemas: [
       {
         id: "cards",
-        name: "카드"
+        name: "카드",
+        icon: "pi pi-image"
       },
       {
         id: "characters",
-        name: "캐릭터"
+        name: "캐릭터",
+        icon: "pi pi-user"
       }
     ]
    });
@@ -77,6 +79,14 @@ app.get('/schema/:schemaId', (req: Request, res: Response) => {
 
   res.json(schemaData);
 });
+
+app.post('/data/:schemaId', (req: Request, res: Response) => {
+  const { schemaId } = req.params;
+
+  res.json({
+    version: 1
+  });
+})
 
 app.listen(port, () => {
   console.log(`⚡️ Server is running at http://localhost:${port}`);
