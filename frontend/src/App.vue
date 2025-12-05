@@ -26,14 +26,14 @@ const loadSchemas = async () => {
     if (schemas.value.length > 0) {
       const schemaItems = schemas.value.map(schema => ({
         label: schema.name,
-        icon: 'pi pi-database',
+        icon: schema.icon ?? 'pi pi-database',
         command: () => {
           router.push(`/${schema.id}`);
         }
       }));
 
       menuItems.value.push({
-        label: '백엔드 스키마',
+        label: '스키마',
         items: schemaItems
       });
     }
@@ -54,7 +54,7 @@ onMounted(() => {
   <div class="app-container">
     <aside class="sidebar">
       <div class="sidebar-header">
-        <h2>📊 데이터 에디터</h2>
+        <h2>데이터 에디터</h2>
       </div>
       <div v-if="loading" class="loading-message">
         <i class="pi pi-spin pi-spinner"></i> 로딩 중...

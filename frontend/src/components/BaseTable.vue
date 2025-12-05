@@ -17,6 +17,11 @@ interface ColumnDefinition {
   formatter?: (value: any) => string;
 }
 
+interface DataChanges {
+  modified: any[];
+  deleted: any[];
+}
+
 interface Props {
   columns: ColumnDefinition[];
   storageKey: string;
@@ -24,12 +29,15 @@ interface Props {
   newItemFactory: () => T;
   exportFileName: string;
   globalFilterFields: string[];
+  onDataChange?: (changes: DataChanges) => void | Promise<void>;
 }
 
 const props = defineProps<Props>();
 
 const items = ref<T[]>([]);
 const filterText = ref('');
+const modifiedItems = ref<Set<any>>(new Set());
+const deletedItems = ref<Set<any>>(new Set());
 
 const loadFromStorage = () => {
   const stored = localStorage.getItem(props.storageKey);
@@ -43,17 +51,33 @@ const loadFromStorage = () => {
 
 const saveToStorage = () => {
   localStorage.setItem(props.storageKey, JSON.stringify(items.value));
+
+  if (props.onDataChange && (modifiedItems.value.size > 0 || deletedItems.value.size > 0)) {
+    const changes = {
+      modified: Array.from(modifiedItems.value),
+      deleted: Array.from(deletedItems.value)
+    };
+    props.onDataChange(changes);
+
+    // Clear tracking after sending
+    modifiedItems.value.clear();
+    deletedItems.value.clear();
+  }
 };
 
 const addRow = () => {
   const newItem = props.newItemFactory();
   items.value.push(newItem);
+  modifiedItems.value.add(newItem);
   saveToStorage();
 };
 
 const deleteRow = (item: T) => {
   if (confirm('정말 삭제하시겠습니까?')) {
     items.value = items.value.filter(i => i !== item);
+    deletedItems.value.add(item);
+    // Remove from modified if it was being tracked there
+    modifiedItems.value.delete(item);
     saveToStorage();
   }
 };
@@ -72,6 +96,7 @@ const onCellEditComplete = (event: any) => {
     data[field] = newValue;
   }
 
+  modifiedItems.value.add(data);
   saveToStorage();
 };
 
@@ -96,6 +121,8 @@ const importData = (event: Event) => {
       const data = JSON.parse(e.target?.result as string);
       if (Array.isArray(data)) {
         items.value = data;
+        // Track all imported items as modified
+        data.forEach(item => modifiedItems.value.add(item));
         saveToStorage();
       }
     } catch (error) {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
 import BaseTable from './BaseTable.vue';
-import { api, type SchemaDetail } from '../services/api';
+import { api, type SchemaDetail, type DataChanges } from '../services/api';
 
 const props = defineProps<{
   schemaId: string;
@@ -43,6 +43,14 @@ const globalFilterFields = () => {
     .map(col => col.field);
 };
 
+const handleDataChange = async (changes: DataChanges) => {
+  try {
+    await api.saveData(props.schemaId, changes);
+  } catch (err) {
+    console.error('Failed to save data:', err);
+  }
+};
+
 onMounted(() => {
   loadSchemaData();
 });
@@ -69,6 +77,7 @@ watch(() => props.schemaId, () => {
     :new-item-factory="newItemFactory"
     :export-file-name="`${schemaId}.json`"
     :global-filter-fields="globalFilterFields()"
+    :on-data-change="handleDataChange"
   />
 </template>
 

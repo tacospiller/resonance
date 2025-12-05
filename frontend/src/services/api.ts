@@ -34,6 +34,11 @@ export interface SchemaDetail {
   data: any[];
 }
 
+export interface DataChanges {
+  modified: any[];
+  deleted: any[];
+}
+
 export const api = {
   getSchemas: async (): Promise<SchemasResponse> => {
     const response = await apiClient.get<SchemasResponse>('/schemas');
@@ -43,5 +48,9 @@ export const api = {
   getSchema: async (schemaId: string): Promise<SchemaDetail> => {
     const response = await apiClient.get<SchemaDetail>(`/schema/${schemaId}`);
     return response.data;
+  },
+
+  saveData: async (schemaId: string, changes: DataChanges): Promise<void> => {
+    await apiClient.post(`/data/${schemaId}`, changes);
   },
 };
