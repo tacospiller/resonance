@@ -1,32 +1,53 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import Menu from 'primevue/menu';
-import DataTable from './components/DataTable.vue';
-import UserTable from './components/UserTable.vue';
+import SchemaTable from './components/SchemaTable.vue';
+import { api, type Schema } from './services/api';
 
-const activeTab = ref<'products' | 'users'>('products');
+const route = useRoute();
+const router = useRouter();
 
-const menuItems = ref([
-  {
-    label: '데이터 관리',
-    items: [
-      {
-        label: '제품 데이터',
-        icon: 'pi pi-box',
+const activeTab = computed(() => route.params.schemaId as string || 'products');
+const schemas = ref<Schema[]>([]);
+const loading = ref(true);
+const error = ref<string | null>(null);
+
+const menuItems = ref([]);
+
+const loadSchemas = async () => {
+  try {
+    loading.value = true;
+    error.value = null;
+    const response = await api.getSchemas();
+    schemas.value = response.schemas;
+
+    // 백엔드에서 받아온 스키마를 메뉴에 추가
+    if (schemas.value.length > 0) {
+      const schemaItems = schemas.value.map(schema => ({
+        label: schema.name,
+        icon: 'pi pi-database',
         command: () => {
-          activeTab.value = 'products';
+          router.push(`/${schema.id}`);
         }
-      },
-      {
-        label: '사용자',
-        icon: 'pi pi-user',
-        command: () => {
-          activeTab.value = 'users';
-        }
-      }
-    ]
+      }));
+
+      menuItems.value.push({
+        label: '백엔드 스키마',
+        items: schemaItems
+      });
+    }
+  } catch (err) {
+    error.value = '스키마를 불러오는데 실패했습니다. 백엔드 서버가 실행 중인지 확인하세요.';
+    console.error('Failed to load schemas:', err);
+  } finally {
+    loading.value = false;
   }
-]);
+};
+
+onMounted(() => {
+  loadSchemas();
+});
 </script>
 
 <template>
@@ -35,11 +56,16 @@ const menuItems = ref([
       <div class="sidebar-header">
         <h2>📊 데이터 에디터</h2>
       </div>
-      <Menu :model="menuItems" class="sidebar-menu" />
+      <div v-if="loading" class="loading-message">
+        <i class="pi pi-spin pi-spinner"></i> 로딩 중...
+      </div>
+      <div v-else-if="error" class="error-message">
+        <i class="pi pi-exclamation-triangle"></i> {{ error }}
+      </div>
+      <Menu v-else :model="menuItems" class="sidebar-menu" />
     </aside>
     <main class="main-content">
-      <DataTable v-if="activeTab === 'products'" />
-      <UserTable v-if="activeTab === 'users'" />
+      <SchemaTable v-if="schemas.find(s => s.id === activeTab)" :schema-id="activeTab" />
     </main>
   </div>
 </template>
@@ -81,8 +107,46 @@ const menuItems = ref([
   padding: 10px;
 }
 
+.loading-message,
+.error-message {
+  padding: 20px;
+  text-align: center;
+  color: #666;
+}
+
+.error-message {
+  color: #e74c3c;
+}
+
+.loading-message i,
+.error-message i {
+  margin-right: 8px;
+}
+
 .main-content {
   flex: 1;
   overflow: hidden;
+}
+
+.schema-placeholder {
+  padding: 40px;
+  text-align: center;
+}
+
+.schema-placeholder h2 {
+  color: #333;
+  margin-bottom: 16px;
+}
+
+.schema-placeholder p {
+  color: #666;
+  margin: 8px 0;
+}
+
+.schema-placeholder code {
+  background-color: #f5f5f5;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: monospace;
 }
 </style>
